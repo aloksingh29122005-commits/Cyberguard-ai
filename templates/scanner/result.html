@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% from "_macros.html" import level_badge, demo_tag %}
+{% block title %}Scan result{% endblock %}
+{% block page_title %}Scan result{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/scanner.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/risk.css') }}">
+{% endblock %}
+
+{% block content %}
+{% set notes = {
+  "url": "The website was not opened.",
+  "email": "No link was opened and nothing was sent.",
+  "scam": "No link was opened and no reply was sent.",
+  "password": "The password itself was never saved.",
+} %}
+{% set sign_word = "weaknesses" if scan.scan_type == "password" else "warning signs" %}
+{% set problems = indicators|rejectattr("good")|list %}
+{% set goods = indicators|selectattr("good")|list %}
+
+<div class="result-actions">
+  {% if scan.scan_type == 'email' %}
+  <a class="btn btn-primary" href="{{ url_for('scanner.email_scan') }}">Analyze another email</a>
+  {% elif scan.scan_type == 'scam' %}
+  <a class="btn btn-primary" href="{{ url_for('scanner.scam_scan') }}">Check another message</a>
+  {% elif scan.scan_type == 'password' %}
+  <a class="btn btn-primary" href="{{ url_for('scanner.password_scan') }}">Check another password</a>
+  {% else %}
+  <a class="btn btn-primary" href="{{ url_for('scanner.url_scan') }}">Check another link</a>
+  {% endif %}
+  <a class="btn btn-ghost" href="{{ url_for('dashboard.index') }}">Back to dashboard</a>
+</div>
+
+<article class="card result-hero">
+  <div class="result-head">
+    <div class="score-box">
+      <p class="score-number">{{ scan.risk_score }}<span>/100</span></p>
+      {{ level_badge(scan.risk_level) }}
+      {% if strength %}
+      <p class="small-label">Password strength: <strong>{{ strength.label }}</strong> ({{ strength.score }}/100)</p>
+      {% elif main_concern %}
+      <p class="small-label">Main concern: <strong>{{ main_concern }}</strong></p>
+      {% endif %}
+    </div>
+    <div class="target-box">
+      <p class="small-label">{{ scan.type_label }} checked{{ demo_tag(scan.is_demo) }}</p>
+      <p class="target-text">{{ scan.target }}</p>
+      <p class="small-note">Checked {{ scan.created_at|local_time }}. {{ notes.get(scan.scan_type, "") }}</p>
+    </div>
+  </div>
+
+  <div class="meter" role="img" aria-label="Risk score {{ scan.risk_score|int }} out of 100, level {{ scan.risk_level }}">
+    <div class="meter-track">
+      <span class="meter-seg risk-safe"></span>
+      <span class="meter-seg risk-low"></span>
+      <span class="meter-seg risk-medium"></span>
+      <span class="meter-seg risk-high"></span>
+      <span class="meter-seg risk-critical"></span>
+      <span class="meter-pointer" style="left: {{ scan.risk_score|int }}%"></span>
+    </div>
+    <div class="meter-labels">
+      <span>Safe</span><span>Low</span><span>Medium</span><span>High</span><span>Critical</span>
+    </div>
+  </div>
+
+  <p class="summary">{{ scan.explanation }}</p>
+  <p class="result-link"><a href="{{ url_for('scanner.scoring_guide') }}">How scoring works</a></p>
+</article>
+
+<div class="result-grid">
+  <article class="card">
+    <h3 class="card-title">{{ sign_word|capitalize }} found</h3>
+    {% if problems %}
+    <ul class="signs">
+      {% for item in problems %}
+      <li class="sign">
+        <div class="sign-top">
+          <span class="sign-text">{{ item.text }}</span>
+          <span class="points">+{{ item.points }}</span>
+        </div>
+        {% if item.why %}<p class="sign-why">{{ item.why }}</p>{% endif %}
+        {% if item.details %}
+        <ul class="sign-details">
+          {% for line in item.details %}<li>{{ line }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="total-line">How the score adds up: {{ sum_text }}</p>
+    {% else %}
+    <div class="empty">
+      <p class="empty-title">No {{ sign_word }} found</p>
+      <p>Nothing matched our rules.</p>
+    </div>
+    {% endif %}
+  </article>
+
+  <div class="result-side">
+    {% if breakdown|length > 1 %}
+    <article class="card">
+      <h3 class="card-title">Where the points come from</h3>
+      <ul class="breakdown">
+        {% for part in breakdown %}
+        <li>
+          <span>{{ part.label }}</span>
+          <span class="breakdown-bar"><span class="breakdown-fill" style="width: {{ part.width|int }}%"></span></span>
+          <span class="breakdown-points">{{ part.points }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </article>
+    {% endif %}
+
+    {% if details %}
+    <article class="card">
+      <h3 class="card-title">Link details</h3>
+      <dl class="kv">
+        <dt>Protocol</dt><dd>{{ details.protocol }}</dd>
+        <dt>Website</dt><dd>{{ details.host }}</dd>
+        {% if details.is_ip %}
+        <dt>Address type</dt><dd>IP number</dd>
+        {% else %}
+        <dt>Main domain</dt><dd>{{ details.main_domain }}</dd>
+        <dt>Ending</dt><dd>{{ details.ending or "none" }}</dd>
+        <dt>Subdomains</dt><dd>{{ details.subdomains|join(", ") if details.subdomains else "none" }}</dd>
+        {% endif %}
+        <dt>Port</dt><dd>{{ details.port or "default" }}</dd>
+      </dl>
+    </article>
+    {% endif %}
+
+    {% if goods %}
+    <article class="card">
+      <h3 class="card-title">What is good</h3>
+      <ul class="plain-list">
+        {% for item in goods %}<li>{{ item.text }}</li>{% endfor %}
+      </ul>
+    </article>
+    {% endif %}
+
+    {% if recommendations %}
+    <article class="card">
+      <h3 class="card-title">What to do</h3>
+      <ol class="todo">
+        {% for line in recommendations %}
+        <li>{{ line }}</li>
+        {% endfor %}
+      </ol>
+    </article>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

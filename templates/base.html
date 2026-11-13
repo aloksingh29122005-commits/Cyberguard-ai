@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Welcome{% endblock %} | CyberGuard AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+  <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+{% block shell %}
+{% set nav_groups = [
+  ("Analyze", [
+    ("URL scanner", "scanner.url_scan"),
+    ("Email analyzer", "scanner.email_scan"),
+    ("Scam detector", "scanner.scam_scan"),
+    ("Password check", "scanner.password_scan"),
+  ]),
+  ("Respond", [("Alerts", none), ("Incidents", none), ("Scan history", none), ("Reports", none)]),
+  ("Learn", [("Learning center", none), ("Awareness score", none)]),
+  ("Assist", [("AI assistant", none), ("AI connection", "ai.status")]),
+] %}
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="{{ url_for('dashboard.index') }}">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>CyberGuard AI</span>
+    </a>
+
+    <nav class="nav" aria-label="Main">
+      <a class="nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}"
+         href="{{ url_for('dashboard.index') }}">Dashboard</a>
+
+      {% for group, items in nav_groups %}
+      <p class="nav-group">{{ group }}</p>
+      {% for label, endpoint in items %}
+      {% if endpoint %}
+      <a class="nav-item {% if request.endpoint == endpoint %}active{% endif %}"
+         href="{{ url_for(endpoint) }}">{{ label }}</a>
+      {% else %}
+      <span class="nav-item disabled">{{ label }} <span class="soon">Soon</span></span>
+      {% endif %}
+      {% endfor %}
+      {% endfor %}
+
+      {% if g.user.is_admin %}
+      <p class="nav-group">Admin</p>
+      <a class="nav-item {% if request.endpoint == 'admin.dashboard' %}active{% endif %}"
+         href="{{ url_for('admin.dashboard') }}">Admin panel</a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-foot">
+      <form method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-ghost btn-block">Log out</button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button type="button" class="btn btn-ghost menu-btn" id="menuBtn"
+              aria-expanded="false" aria-controls="sidebar">Menu</button>
+      <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+      <div class="user-chip">
+        <span class="avatar" aria-hidden="true">{{ g.user.username[0]|upper }}</span>
+        <span class="user-name">{{ g.user.username }}</span>
+        <span class="badge badge-{{ g.user.role }}">{{ g.user.role|capitalize }}</span>
+      </div>
+    </header>
+
+    {% include "_flash.html" %}
+
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endblock %}
+</body>
+</html>

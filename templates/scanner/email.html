@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% from "_macros.html" import level_badge %}
+{% block title %}Email analyzer{% endblock %}
+{% block page_title %}Email analyzer{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/scanner.css') }}">
+<script src="{{ url_for('static', filename='js/scanner.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+<section class="intro">
+  <h2>Check an email</h2>
+  <p>Paste the whole email, with the From, Reply-To and Subject lines if you can. Do not click anything in it. The checker only reads the text.</p>
+</section>
+
+<div class="scan-grid">
+  <article class="card">
+    <form method="post" id="scanForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="scanInput">Email text</label>
+        <textarea id="scanInput" name="email_text" rows="12" maxlength="20000" spellcheck="false" required autofocus
+                  placeholder="From: Name &lt;name@example.com&gt;&#10;Subject: ...&#10;&#10;Dear ...">{{ typed_text }}</textarea>
+        <p class="hint">Up to 20,000 characters. The email text is checked and then forgotten. Only the subject, the sender and the result are saved.</p>
+      </div>
+      <button type="submit" class="btn btn-primary">Analyze email</button>
+    </form>
+
+    <div class="examples">
+      <p class="examples-title">Try an example</p>
+      <div class="examples-row">
+        <button type="button" class="chip" data-example-from="example-safe">Safe example</button>
+        <button type="button" class="chip" data-example-from="example-medium">Medium example</button>
+        <button type="button" class="chip" data-example-from="example-high">High example</button>
+      </div>
+    </div>
+  </article>
+
+  <article class="card">
+    <h3 class="card-title">What the checker looks for</h3>
+    <ul class="plain-list">
+      <li>Requests for passwords, PINs, OTPs or card details</li>
+      <li>Requests for money, fees or gift cards</li>
+      <li>Urgent wording, threats and "verify your account"</li>
+      <li>Prize, lottery and refund offers</li>
+      <li>A sender that pretends to be a known company</li>
+      <li>A Reply-To address that differs from the sender</li>
+      <li>Dangerous links (each link is checked by the URL scanner)</li>
+      <li>Risky attachment names and "enable macros"</li>
+    </ul>
+    <p class="limits">This is a rule-based check, not AI. It can miss new tricks, and it can flag honest emails that use scary words.</p>
+  </article>
+</div>
+
+<article class="card">
+  <h3 class="card-title">Your recent email checks</h3>
+  {% if recent_scans %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Email</th><th>Score</th><th>Level</th><th>Time</th></tr>
+      </thead>
+      <tbody>
+        {% for scan in recent_scans %}
+        <tr>
+          <td class="link-cell"><a href="{{ url_for('scanner.scan_detail', scan_id=scan.id) }}">{{ scan.target }}</a></td>
+          <td class="score-cell">{{ scan.risk_score }}</td>
+          <td>{{ level_badge(scan.risk_level) }}</td>
+          <td class="time-cell">{{ scan.created_at|local_time('%d %b, %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <p class="empty-title">No email checks yet</p>
+    <p>Your checks will be listed here so you can open them again.</p>
+  </div>
+  {% endif %}
+</article>
+
+{# Example emails. They are plain text that the example buttons copy into the box. #}
+<script type="text/plain" id="example-safe">From: Priya Sharma <priya@example.org>
+Subject: Notes from Friday's meeting
+
+Hi team,
+
+Here are the notes from Friday's meeting. The next meeting is on Tuesday at 10 am. Please send me any changes by Monday.
+
+Thanks,
+Priya</script>
+
+<script type="text/plain" id="example-medium">Subject: Congratulations, you have won!
+
+Dear winner, you have won a cash prize in our lucky draw. To claim your reward, pay a small processing fee today.</script>
+
+<script type="text/plain" id="example-high">From: "PayPal Support" <support@paypa1-secure.example>
+Reply-To: helpdesk@gmail.com
+Subject: URGENT: Your account will be suspended
+
+Dear customer,
+
+We noticed unusual activity on your account. You must verify your account within 24 hours or it will be suspended permanently.
+
+Please confirm your password and OTP here: http://paypa1-secure.example/verify/login
+
+Thank you,
+Security Team</script>
+{% endblock %}

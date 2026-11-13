@@ -1,0 +1,15 @@
+<div class="risk-scale">
+  {% for name, score_range, level in [
+    ("Safe", "0-20", "safe"),
+    ("Low", "21-40", "low"),
+    ("Medium", "41-60", "medium"),
+    ("High", "61-80", "high"),
+    ("Critical", "81-100", "critical"),
+  ] %}
+  <div class="risk-step risk-{{ level }}">
+    <span class="risk-bar"></span>
+    <span class="risk-name">{{ name }}</span>
+    <span class="risk-range">{{ score_range }}</span>
+  </div>
+  {% endfor %}
+</div>

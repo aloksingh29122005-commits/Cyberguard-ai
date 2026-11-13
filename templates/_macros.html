@@ -1,0 +1,10 @@
+{# Small reusable pieces. Use them with:  {% from "_macros.html" import level_badge, demo_tag %} #}
+
+{% macro level_badge(level) -%}
+  {% set slug = 'info' if level == 'Informational' else level|lower -%}
+  <span class="level-badge level-{{ slug }}">{{ level }}</span>
+{%- endmacro %}
+
+{% macro demo_tag(is_demo) -%}
+  {% if is_demo %}<span class="demo-tag">Demo</span>{% endif %}
+{%- endmacro %}

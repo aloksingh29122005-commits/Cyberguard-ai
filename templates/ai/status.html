@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}AI connection{% endblock %}
+{% block page_title %}AI connection{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/scanner.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="intro">
+  <h2>AI connection</h2>
+  <p>The AI helper explains results and answers security questions. It is optional: every scanner, score and alert in CyberGuard AI works without it.</p>
+</section>
+
+<div class="scan-grid">
+  <article class="card">
+    <h3 class="card-title">Status</h3>
+
+    {% if info.configured %}
+    <p><span class="level-badge level-safe">Ready</span></p>
+    <p class="card-note">AI answers are available.</p>
+    {% elif info.provider == 'none' %}
+    <p><span class="level-badge level-info">Off</span></p>
+    <p class="card-note">The AI is switched off. The app shows safe built-in text instead.</p>
+    {% else %}
+    <p><span class="level-badge level-medium">Not ready</span></p>
+    <p class="card-note">
+      {% if g.user.is_admin %}{{ info.problem }}{% else %}The AI is not set up yet. Please ask the administrator.{% endif %}
+    </p>
+    {% endif %}
+
+    {% if g.user.is_admin %}
+    <dl class="kv">
+      <dt>Provider</dt><dd>{{ info.provider_label }}</dd>
+      <dt>Model</dt><dd>{{ info.model or "not set" }}</dd>
+      <dt>Server</dt><dd>{{ info.host or "not set" }}</dd>
+      <dt>API key</dt><dd>{{ "Set (it is never shown)" if info.key_set else "Not set" }}</dd>
+      <dt>Questions per person</dt><dd>{{ info.calls_per_hour }} per hour</dd>
+      <dt>Time limit</dt><dd>{{ info.timeout }} seconds</dd>
+    </dl>
+
+    <form method="post" action="{{ url_for('ai.test_connection') }}" class="examples">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-primary" {% if not info.configured %}disabled{% endif %}>Send a test question</button>
+      <p class="hint">Sends one fixed, harmless question ("what is phishing?") to check the settings. It uses a little of your AI quota.</p>
+    </form>
+    {% endif %}
+  </article>
+
+  <article class="card">
+    <h3 class="card-title">What is sent to the AI</h3>
+    <ul class="plain-list">
+      <li>Only your question or a short summary of a scan, never the whole email or message.</li>
+      <li>Passwords are never sent. The password check never uses the AI.</li>
+      <li>OTPs, PINs, card and phone numbers, emails and passwords written in a question are removed first.</li>
+      <li>Links keep their website and path, but lose logins and everything after a question mark.</li>
+      <li>The API key stays on the server. It is never in a web page or in JavaScript.</li>
+    </ul>
+    <p class="limits">If the AI is off, slow or broken, you get a safe built-in answer and the app keeps working. AI answers can be wrong, so double-check anything important.</p>
+  </article>
+</div>
+
+{% if g.user.is_admin %}
+<article class="card">
+  <h3 class="card-title">How to set it up</h3>
+  <ol class="todo">
+    <li>Open the <code>.env</code> file in the project folder and copy the lines of one option from <code>.env.example</code>.</li>
+    <li>Paste your own API key. Never share this file or upload it.</li>
+    <li>Stop the app (Ctrl + C) and start it again, because settings are read when the app starts.</li>
+    <li>Come back to this page and press <strong>Send a test question</strong>.</li>
+  </ol>
+</article>
+{% endif %}
+{% endblock %}

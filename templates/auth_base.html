@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{# Layout for pages shown to people who are not logged in (login, register, errors) #}
+{% block shell %}
+<div class="auth-shell">
+  <section class="auth-brand">
+    <span class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>CyberGuard AI</span>
+    </span>
+
+    <div class="auth-brand-body">
+      <h2>Know how risky it is before you click.</h2>
+      <p>Check links, emails, messages and passwords. Every score comes from warning signs you can see, so you always know why.</p>
+      {% include "_risk_scale.html" %}
+    </div>
+  </section>
+
+  <section class="auth-panel">
+    {% include "_flash.html" %}
+    <div class="auth-card">
+      {% block content %}{% endblock %}
+    </div>
+  </section>
+</div>
+{% endblock %}

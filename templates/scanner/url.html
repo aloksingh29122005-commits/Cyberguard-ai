@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "_macros.html" import level_badge %}
+{% block title %}URL scanner{% endblock %}
+{% block page_title %}URL scanner{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/scanner.css') }}">
+<script src="{{ url_for('static', filename='js/scanner.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+<section class="intro">
+  <h2>Check a link</h2>
+  <p>Paste a link you are not sure about. Do not click it. The checker reads the text of the link and never opens the website.</p>
+</section>
+
+<div class="scan-grid">
+  <article class="card">
+    <form method="post" id="scanForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="scanInput">Link to check</label>
+        <input id="scanInput" name="url" type="text" value="{{ typed_url }}" maxlength="2000"
+               placeholder="https://example.com/page" inputmode="url" autocomplete="off"
+               spellcheck="false" required autofocus>
+        <p class="hint">Start with http:// or https://</p>
+      </div>
+      <button type="submit" class="btn btn-primary">Check link</button>
+    </form>
+
+    <div class="examples">
+      <p class="examples-title">Try an example</p>
+      <div class="examples-row">
+        <button type="button" class="chip" data-example="https://docs.python.org/3/">Safe example</button>
+        <button type="button" class="chip" data-example="http://192.168.10.25/login/verify">Medium example</button>
+        <button type="button" class="chip" data-example="http://paypal.com@account-verify.example/login/update">High example</button>
+      </div>
+    </div>
+  </article>
+
+  <article class="card">
+    <h3 class="card-title">What the checker looks for</h3>
+    <ul class="plain-list">
+      <li>Whether the link uses HTTPS</li>
+      <li>An IP number instead of a website name</li>
+      <li>Suspicious words such as login or verify</li>
+      <li>Too many subdomains, an @ sign, or lookalike letters</li>
+      <li>Very long links and link-shorteners</li>
+      <li>A famous company name on a website that is not theirs</li>
+    </ul>
+    <p class="limits">This is a rule-based check, not AI. It can miss new tricks, and it can flag honest links that look unusual.</p>
+  </article>
+</div>
+
+<article class="card">
+  <h3 class="card-title">Your recent link checks</h3>
+  {% if recent_scans %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Link</th><th>Score</th><th>Level</th><th>Time</th></tr>
+      </thead>
+      <tbody>
+        {% for scan in recent_scans %}
+        <tr>
+          <td class="link-cell"><a href="{{ url_for('scanner.scan_detail', scan_id=scan.id) }}">{{ scan.target }}</a></td>
+          <td class="score-cell">{{ scan.risk_score }}</td>
+          <td>{{ level_badge(scan.risk_level) }}</td>
+          <td class="time-cell">{{ scan.created_at|local_time('%d %b, %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <p class="empty-title">No link checks yet</p>
+    <p>Your checks will be listed here so you can open them again.</p>
+  </div>
+  {% endif %}
+</article>
+{% endblock %}

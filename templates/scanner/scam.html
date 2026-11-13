@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% from "_macros.html" import level_badge %}
+{% block title %}Scam detector{% endblock %}
+{% block page_title %}Scam detector{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/scanner.css') }}">
+<script src="{{ url_for('static', filename='js/scanner.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+<section class="intro">
+  <h2>Check a message</h2>
+  <p>Paste an SMS or WhatsApp message you are not sure about. Do not click its links, call its numbers or reply. The checker only reads the text.</p>
+</section>
+
+<div class="scan-grid">
+  <article class="card">
+    <form method="post" id="scanForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="scanInput">Message text</label>
+        <textarea id="scanInput" name="message_text" rows="8" maxlength="3000" spellcheck="false" required autofocus
+                  placeholder="Paste the message here">{{ typed_text }}</textarea>
+        <p class="hint">Up to 3,000 characters. The message is checked and then forgotten. Only a short label (the first 50 characters, with long numbers hidden) and the result are saved.</p>
+      </div>
+      <button type="submit" class="btn btn-primary">Check message</button>
+    </form>
+
+    <div class="examples">
+      <p class="examples-title">Try an example</p>
+      <div class="examples-row">
+        <button type="button" class="chip" data-example-from="example-safe">Safe example</button>
+        <button type="button" class="chip" data-example-from="example-medium">Medium example</button>
+        <button type="button" class="chip" data-example-from="example-high">High example</button>
+      </div>
+    </div>
+  </article>
+
+  <article class="card">
+    <h3 class="card-title">What the checker looks for</h3>
+    <ul class="plain-list">
+      <li>Requests for an OTP, PIN or password</li>
+      <li>Requests for money, fees, deposits or QR payments</li>
+      <li>Threats about your account, card, SIM or KYC</li>
+      <li>Prize, lottery and easy-job offers</li>
+      <li>Police, tax or government officers contacting you</li>
+      <li>Fake delivery messages and app installs</li>
+      <li>A known company name with a link to another website</li>
+      <li>Dangerous or shortened links (checked by the URL scanner)</li>
+    </ul>
+    <p class="limits">This is a rule-based check, not AI. It knows English and some common Hinglish phrases. It can miss new tricks, and it can flag honest messages that use scary words.</p>
+  </article>
+</div>
+
+<article class="card">
+  <h3 class="card-title">Your recent message checks</h3>
+  {% if recent_scans %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Message</th><th>Score</th><th>Level</th><th>Time</th></tr>
+      </thead>
+      <tbody>
+        {% for scan in recent_scans %}
+        <tr>
+          <td class="link-cell"><a href="{{ url_for('scanner.scan_detail', scan_id=scan.id) }}">{{ scan.target }}</a></td>
+          <td class="score-cell">{{ scan.risk_score }}</td>
+          <td>{{ level_badge(scan.risk_level) }}</td>
+          <td class="time-cell">{{ scan.created_at|local_time('%d %b, %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <p class="empty-title">No message checks yet</p>
+    <p>Your checks will be listed here so you can open them again.</p>
+  </div>
+  {% endif %}
+</article>
+
+{# Example messages. They are plain text that the example buttons copy into the box. #}
+<script type="text/plain" id="example-safe">Hi Sam, are we still meeting at 6 pm near the library? Let me know if you want to change the time.</script>
+
+<script type="text/plain" id="example-medium">Congratulations! You have won a lucky draw prize of Rs 50,000. To claim your prize, pay a small registration fee today.</script>
+
+<script type="text/plain" id="example-high">SBI ALERT: Your KYC has expired and your account will be blocked today. Update now: http://sbi-kyc-update.xyz/login and share the OTP you receive. Call 98765 43210.</script>
+{% endblock %}

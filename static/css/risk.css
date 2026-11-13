@@ -1,0 +1,28 @@
+/* Score breakdown on the result page and the "How scoring works" page */
+
+/* ---------- Where the points come from ---------- */
+.breakdown { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.breakdown li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.3fr) 2fr auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+.breakdown-bar { display: block; height: 8px; overflow: hidden; border-radius: 999px; background: var(--raised); }
+.breakdown-fill { display: block; height: 100%; border-radius: 999px; background: var(--blue); }
+.breakdown-points { min-width: 28px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.result-link { margin-top: 10px; font-size: 14px; }
+
+/* ---------- How scoring works ---------- */
+.guide-grid { display: grid; gap: 20px; }
+.guide-grid .risk-scale { margin-top: 20px; }
+.rule-points { font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rule-kind { color: var(--muted); white-space: nowrap; }
+.rule-why { min-width: 260px; color: var(--muted); font-size: 14px; }
+
+@media (max-width: 560px) {
+  .breakdown li { grid-template-columns: 1fr auto; }
+  .breakdown-bar { grid-column: 1 / -1; order: 3; }
+}

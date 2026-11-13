@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}How scoring works{% endblock %}
+{% block page_title %}How scoring works{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/scanner.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/risk.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="intro">
+  <h2>How scoring works</h2>
+  <p>Every scanner follows the same rules. Each warning sign adds points, and the total decides the level. Nothing is random, and every rule is listed here.</p>
+</section>
+
+<div class="guide-grid">
+  <article class="card">
+    <h3 class="card-title">From points to a level</h3>
+    <ol class="todo">
+      <li>The scanner looks for warning signs in the text. It never opens links, files or apps.</li>
+      <li>Each warning sign adds the points shown in the tables below.</li>
+      <li>The total is the risk score. It is limited to 100.</li>
+      <li>The score decides the level. A score of {{ threat_min_score }} or more (Medium and above) counts as a threat and raises an alert.</li>
+    </ol>
+    {% include "_risk_scale.html" %}
+  </article>
+
+  {% for scanner in catalog %}
+  <article class="card">
+    <h3 class="card-title">{{ scanner.title }}</h3>
+    {% if scanner.scan_type == 'password' %}
+    <p class="card-note">For passwords, a higher score means a weaker password. A score of 0 to 20 is Strong, 21 to 40 is Moderate and 41 or more is Weak.</p>
+    {% endif %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Warning sign</th><th>Points</th><th>Kind</th><th>Why it matters</th></tr>
+        </thead>
+        <tbody>
+          {% for rule in scanner.rules %}
+          <tr>
+            <td>{{ rule.name }}</td>
+            <td class="rule-points">+{{ rule.points_text }}</td>
+            <td class="rule-kind">{{ rule.category_label }}</td>
+            <td class="rule-why">{{ rule.why }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}

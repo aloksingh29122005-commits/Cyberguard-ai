@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% from "_macros.html" import level_badge, demo_tag %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% if data.total_scans %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="intro">
+  <h2>Welcome, {{ g.user.username }}</h2>
+  <p>A quick look at your scans and alerts.</p>
+</section>
+
+{% if data.has_demo %}
+<div class="demo-banner" role="note">
+  You are looking at demo data. Rows with a <span class="demo-tag">Demo</span> tag are examples, not real scans.
+  Remove them with <code>python -m database.seed_demo clear</code>.
+</div>
+{% endif %}
+
+{# ---------- Summary numbers ---------- #}
+<section class="stats" aria-label="Summary">
+  {% set tiles = [
+    ("Total scans", data.total_scans, "All time", "blue"),
+    ("Threats found", data.total_threats, "Medium risk or higher", "violet"),
+    ("Critical alerts", data.alert_counts["Critical"], "Not resolved yet", "critical"),
+    ("High alerts", data.alert_counts["High"], "Not resolved yet", "high"),
+    ("Medium alerts", data.alert_counts["Medium"], "Not resolved yet", "medium"),
+  ] %}
+  {% for label, value, note, tone in tiles %}
+  <article class="stat stat-{{ tone }}">
+    <p class="stat-label"><span class="stat-dot"></span>{{ label }}</p>
+    <p class="stat-value">{{ value }}</p>
+    <p class="stat-note">{{ note }}</p>
+  </article>
+  {% endfor %}
+  <article class="stat stat-safe">
+    <p class="stat-label"><span class="stat-dot"></span>Security score</p>
+    <p class="stat-value is-text">Not rated yet</p>
+    <p class="stat-note">Comes from the quizzes, which are added later</p>
+  </article>
+</section>
+
+{# ---------- Charts ---------- #}
+<div class="chart-row">
+  <article class="card">
+    <h3 class="card-title">Scan activity, last 14 days</h3>
+    {% if data.total_scans %}
+    <div class="chart-box">
+      <canvas id="activityChart" role="img" aria-label="Bar chart of scans per day for the last 14 days"></canvas>
+    </div>
+    {% else %}
+    <div class="empty">
+      <p class="empty-title">Nothing to show yet</p>
+      <p>The chart appears after your first scan.</p>
+    </div>
+    {% endif %}
+  </article>
+
+  <article class="card">
+    <h3 class="card-title">Threat distribution</h3>
+    {% if data.total_scans %}
+    <div class="chart-box chart-box-small">
+      <canvas id="levelChart" role="img" aria-label="Doughnut chart of scans by risk level"></canvas>
+    </div>
+    <ul class="legend">
+      {% for level in data.levels %}
+      <li class="risk-{{ level['name']|lower }}">
+        <span class="legend-name"><span class="legend-dot"></span>{{ level['name'] }}</span>
+        <span class="legend-count">{{ level['count'] }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty">
+      <p class="empty-title">Nothing to show yet</p>
+      <p>Scans are grouped here by risk level.</p>
+    </div>
+    {% endif %}
+  </article>
+</div>
+
+{% if data.total_scans %}
+<script type="application/json" id="dashboard-data">{{ chart_data|tojson }}</script>
+{% endif %}
+
+{# ---------- Recent scans and alerts ---------- #}
+<div class="tables-row">
+  <article class="card">
+    <h3 class="card-title">Recent scans</h3>
+    {% if data.recent_scans %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Type</th><th>Target</th><th>Score</th><th>Level</th><th>Time</th></tr>
+        </thead>
+        <tbody>
+          {% for scan in data.recent_scans %}
+          <tr>
+            <td>{{ scan.type_label }}{{ demo_tag(scan.is_demo) }}</td>
+            <td class="target-cell" title="{{ scan.target }}">{{ scan.target }}</td>
+            <td class="score-cell">{{ scan.risk_score }}</td>
+            <td>{{ level_badge(scan.risk_level) }}</td>
+            <td class="time-cell">{{ scan.created_at|local_time('%d %b, %H:%M') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty">
+      <p class="empty-title">No scans yet</p>
+      <p>Every scan you run will be listed here with its risk score and level.</p>
+    </div>
+    {% endif %}
+  </article>
+
+  <article class="card">
+    <h3 class="card-title">Recent alerts</h3>
+    {% if data.recent_alerts %}
+    <ul class="alert-list">
+      {% for alert in data.recent_alerts %}
+      <li class="alert-item">
+        <div class="alert-top">
+          <span class="alert-title">{{ alert.alert_type }}{{ demo_tag(alert.is_demo) }}</span>
+          {{ level_badge(alert.severity) }}
+        </div>
+        <p class="alert-desc">{{ alert.description }}</p>
+        <p class="alert-meta">
+          <span>{{ alert.display_id }}</span>
+          <span>{{ alert.source }}</span>
+          <span>{{ alert.status }}</span>
+          <span>{{ alert.created_at|local_time('%d %b, %H:%M') }}</span>
+        </p>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty">
+      <p class="empty-title">No alerts</p>
+      <p>Scans with a Medium, High or Critical result raise an alert here.</p>
+    </div>
+    {% endif %}
+  </article>
+</div>
+
+<article class="card">
+  <h3 class="card-title">How risk levels work</h3>
+  <p class="card-note">Every scan gets a score from 0 to 100. The score is the total of the warning signs found, and the score decides the level.</p>
+  {% include "_risk_scale.html" %}
+</article>
+{% endblock %}
